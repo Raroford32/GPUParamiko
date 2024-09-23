@@ -1,53 +1,22 @@
-import pycuda.autoinit
-import pycuda.driver as cuda
-from pycuda.compiler import SourceModule
-import numpy as np
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+import os
 
 class AES:
     def __init__(self, key):
         self.key = key
-        self._init_gpu()
-
-    def _init_gpu(self):
-        # CUDA kernel for AES encryption (simplified)
-        mod = SourceModule("""
-        __global__ void aes_encrypt(unsigned char *plaintext, unsigned char *key, 
-                                    unsigned char *ciphertext, int size) {
-            int idx = threadIdx.x + blockIdx.x * blockDim.x;
-            if (idx < size) {
-                // Simplified AES encryption (not secure, for demonstration only)
-                ciphertext[idx] = plaintext[idx] ^ key[idx % 16];
-            }
-        }
-        """)
-        self.aes_encrypt = mod.get_function("aes_encrypt")
+        self.backend = default_backend()
 
     def encrypt(self, plaintext):
-        # Pad plaintext to be multiple of 16 bytes
-        padded_size = ((len(plaintext) + 15) // 16) * 16
-        padded_plaintext = plaintext.ljust(padded_size, b'\0')
-        
-        # Prepare data for GPU
-        plaintext_gpu = cuda.mem_alloc(padded_size)
-        key_gpu = cuda.mem_alloc(16)
-        ciphertext_gpu = cuda.mem_alloc(padded_size)
-        
-        cuda.memcpy_htod(plaintext_gpu, padded_plaintext)
-        cuda.memcpy_htod(key_gpu, self.key)
-        
-        # Run GPU kernel
-        self.aes_encrypt(
-            plaintext_gpu, key_gpu, ciphertext_gpu,
-            np.int32(padded_size),
-            block=(256, 1, 1), grid=((padded_size + 255) // 256, 1)
-        )
-        
-        # Get result from GPU
-        ciphertext = np.empty(padded_size, dtype=np.uint8)
-        cuda.memcpy_dtoh(ciphertext, ciphertext_gpu)
-        
-        return ciphertext.tobytes()
+        iv = os.urandom(16)
+        cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=self.backend)
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(plaintext) + encryptor.finalize()
+        return iv + ciphertext
 
     def decrypt(self, ciphertext):
-        # For this simplified example, encryption and decryption are the same operation
-        return self.encrypt(ciphertext)
+        iv = ciphertext[:16]
+        ciphertext = ciphertext[16:]
+        cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=self.backend)
+        decryptor = cipher.decryptor()
+        return decryptor.update(ciphertext) + decryptor.finalize()

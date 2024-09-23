@@ -1,5 +1,6 @@
 import socket
 import struct
+import os
 from .crypto import RSA, AES
 
 class Transport:
@@ -20,21 +21,21 @@ class Transport:
 
         # Send client public key
         self._send_message(b"SSH-2.0-SSH_GPU_0.1")
-        self._send_message(str(client_rsa.public_key[0]).encode())
-        self._send_message(str(client_rsa.public_key[1]).encode())
+        self._send_message(str(client_rsa.public_key.public_numbers().n).encode())
+        self._send_message(str(client_rsa.public_key.public_numbers().e).encode())
 
         # Receive server public key
         server_version = self._recv_message()
         server_n = int(self._recv_message().decode())
         server_e = int(self._recv_message().decode())
-        self.server_key = (server_n, server_e)
+        self.server_key = RSA()
+        self.server_key.public_key = rsa.RSAPublicNumbers(server_e, server_n).public_key()
 
         # Generate and exchange session key
-        session_key = os.urandom(32)
-        encrypted_session_key = RSA(self.server_key).encrypt(session_key)
+        self.session_key = os.urandom(32)
+        encrypted_session_key = self.server_key.encrypt(self.session_key)
         self._send_message(encrypted_session_key)
 
-        self.session_key = session_key
         self.session_id = os.urandom(16)
 
     def auth_password(self, username, password):
