@@ -1,5 +1,6 @@
 import os
 import stat
+from .crypto import AES
 
 class SFTPClient:
     def __init__(self, transport):
@@ -12,7 +13,7 @@ class SFTPClient:
     def put(self, localpath, remotepath, callback=None, confirm=True):
         file_size = os.path.getsize(localpath)
         with open(localpath, 'rb') as f:
-            self.putfo(f, remotepath, file_size, callback, confirm)
+            return self.putfo(f, remotepath, file_size, callback, confirm)
 
     def putfo(self, fl, remotepath, file_size=0, callback=None, confirm=True):
         self.transport._send_message(b"putfo")
@@ -59,7 +60,7 @@ class SFTPClient:
 
         encrypted_response = self.transport._recv_message()
         response = AES(self.transport.session_key).decrypt(encrypted_response)
-        return response.decode().split('\n')
+        return [item.decode() for item in response.split(b'\n') if item]
 
     def mkdir(self, path, mode=511):
         self.transport._send_message(b"mkdir")
@@ -90,7 +91,7 @@ class SFTPClient:
 
         encrypted_response = self.transport._recv_message()
         response = AES(self.transport.session_key).decrypt(encrypted_response)
-        return SFTPAttributes.from_string(response.decode())
+        return SFTPAttributes.from_bytes(response)
 
 class SFTPAttributes:
     def __init__(self, st_mode=None, st_size=None, st_uid=None, st_gid=None, st_atime=None, st_mtime=None):
@@ -102,8 +103,8 @@ class SFTPAttributes:
         self.st_mtime = st_mtime
 
     @classmethod
-    def from_string(cls, attr_string):
-        attrs = attr_string.split(':')
+    def from_bytes(cls, attr_bytes):
+        attrs = attr_bytes.split(b':')
         return cls(
             st_mode=int(attrs[0]),
             st_size=int(attrs[1]),

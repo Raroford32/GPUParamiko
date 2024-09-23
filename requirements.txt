@@ -1,2 +1,2 @@
-cryptography>=3.4.7
+cryptography>=43.0.1
 pycuda>=2021.1
