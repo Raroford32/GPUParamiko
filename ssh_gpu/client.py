@@ -3,12 +3,13 @@ from .transport import Transport
 from .sftp import SFTPClient
 
 class SSHClient:
-    def __init__(self):
+    def __init__(self, use_gpu=False):
         self.transport = None
+        self.use_gpu = use_gpu
 
     def connect(self, hostname, port=22, username=None, password=None, pkey=None):
         sock = socket.create_connection((hostname, port))
-        self.transport = Transport(sock)
+        self.transport = Transport(sock, use_gpu=self.use_gpu)
         self.transport.start_client()
 
         if pkey is not None:

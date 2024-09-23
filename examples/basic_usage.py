@@ -1,7 +1,8 @@
 from ssh_gpu import SSHClient
 
 def main():
-    client = SSHClient()
+    # Create an SSHClient with GPU acceleration enabled
+    client = SSHClient(use_gpu=True)
     
     try:
         # Connect to the remote server

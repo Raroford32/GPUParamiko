@@ -4,11 +4,12 @@ import os
 from .crypto import RSA, AES
 
 class Transport:
-    def __init__(self, sock):
+    def __init__(self, sock, use_gpu=False):
         self.sock = sock
         self.session_id = None
         self.server_key = None
         self.session_key = None
+        self.use_gpu = use_gpu
 
     def start_client(self):
         # Perform key exchange
@@ -40,7 +41,8 @@ class Transport:
 
     def auth_password(self, username, password):
         message = f"{username}\0{password}".encode()
-        encrypted_message = AES(self.session_key).encrypt(message)
+        aes = AES(self.session_key)
+        encrypted_message = aes.encrypt(message, use_gpu=self.use_gpu)
         self._send_message(b"password")
         self._send_message(encrypted_message)
         response = self._recv_message()
@@ -69,7 +71,8 @@ class Channel:
         self.channel_id = os.urandom(4)
 
     def exec_command(self, command):
-        encrypted_command = AES(self.transport.session_key).encrypt(command.encode())
+        aes = AES(self.transport.session_key)
+        encrypted_command = aes.encrypt(command.encode(), use_gpu=self.transport.use_gpu)
         self.transport._send_message(b"exec")
         self.transport._send_message(self.channel_id)
         self.transport._send_message(encrypted_command)
@@ -99,7 +102,8 @@ class ChannelFile:
             data = self.channel.transport._recv_message()
             if not data:
                 break
-            self.buffer += AES(self.channel.transport.session_key).decrypt(data)
+            aes = AES(self.channel.transport.session_key)
+            self.buffer += aes.decrypt(data)
 
         if size == -1:
             result = self.buffer

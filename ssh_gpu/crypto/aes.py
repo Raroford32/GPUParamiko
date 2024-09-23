@@ -9,7 +9,7 @@ class AES:
         self.key = key
         self.backend = default_backend()
 
-    def encrypt(self, plaintext):
+    def encrypt(self, plaintext, use_gpu=False):
         iv = os.urandom(16)  # Generate a 16-byte IV
         cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=self.backend)
         encryptor = cipher.encryptor()
@@ -17,6 +17,8 @@ class AES:
         return iv + ciphertext  # Prepend IV to ciphertext
 
     def decrypt(self, data):
+        if len(data) < 16:
+            raise ValueError("Input data must be at least 16 bytes long (IV + ciphertext)")
         iv = data[:16]  # Extract the 16-byte IV
         ciphertext = data[16:]  # Get the actual ciphertext
         cipher = Cipher(algorithms.AES(self.key), modes.CFB(iv), backend=self.backend)
