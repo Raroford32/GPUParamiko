@@ -21,6 +21,32 @@ pip install ssh_gpu
 
 Note: Make sure you have the necessary CUDA drivers and toolkit installed on your system before installing PyCUDA.
 
+### Installing from source
+
+To install SSH_GPU directly from the source code:
+
+1. Ensure you have git installed on your system.
+2. Open a terminal and navigate to the directory where you want to install SSH_GPU.
+3. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/ssh_gpu.git
+   ```
+   (Replace 'yourusername' with the actual GitHub username or organization where the repository is hosted)
+4. Navigate into the cloned directory:
+   ```
+   cd ssh_gpu
+   ```
+5. Install the required dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+6. Install the package in editable mode:
+   ```
+   pip install -e .
+   ```
+
+This will install SSH_GPU from the source code. Remember that you still need to have CUDA and PyCUDA installed on your system as mentioned in the pip installation instructions.
+
 ## Basic Usage
 Here's a basic example of how to use SSH_GPU to connect to a remote server and execute a command:
 
