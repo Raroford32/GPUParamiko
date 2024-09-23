@@ -9,8 +9,8 @@ class TestSFTPClient(unittest.TestCase):
         self.client = SSHClient()
         # Mock connection
         self.client.transport = type('obj', (object,), {
-            '_send_message': lambda x: None,
-            '_recv_message': lambda: b'OK'
+            '_send_message': lambda self, x: None,
+            '_recv_message': lambda self: b'OK'
         })()
         self.sftp = SFTPClient.from_transport(self.client.transport)
 
@@ -30,14 +30,14 @@ class TestSFTPClient(unittest.TestCase):
             temp_file_path = temp_file.name
 
         try:
-            self.client.transport._recv_message = lambda: b'10'
+            self.client.transport._recv_message = lambda self: b'10'
             result = self.sftp.get('/remote/path', temp_file_path)
             self.assertEqual(result, temp_file_path)
         finally:
             os.unlink(temp_file_path)
 
     def test_listdir(self):
-        self.client.transport._recv_message = lambda: AES(b'0123456789abcdef').encrypt(b'file1\nfile2\nfile3')
+        self.client.transport._recv_message = lambda self: b'file1\nfile2\nfile3'
         result = self.sftp.listdir('/remote/path')
         self.assertEqual(result, ['file1', 'file2', 'file3'])
 
@@ -55,7 +55,7 @@ class TestSFTPClient(unittest.TestCase):
 
     def test_stat(self):
         attrs_str = "33188:1024:1000:1000:1621234567.89:1621234567.89"
-        self.client.transport._recv_message = lambda: AES(b'0123456789abcdef').encrypt(attrs_str.encode())
+        self.client.transport._recv_message = lambda self: attrs_str.encode()
         result = self.sftp.stat('/remote/file')
         self.assertIsInstance(result, SFTPAttributes)
         self.assertEqual(result.st_mode, 33188)
